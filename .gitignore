@@ -1,50 +1,47 @@
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
+# =========================
+# Object files
+# =========================
 *.o
 *.obj
+*.d
 
-# Precompiled Headers
+# =========================
+# Precompiled headers
+# =========================
 *.gch
 *.pch
 
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
+# =========================
+# Libraries
+# =========================
 *.a
 *.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.la
+*.lai
 
+# =========================
 # Executables
+# =========================
 *.exe
 *.out
 *.app
 
+# =========================
 # Build directories
+# =========================
 build/
 Build/
 build-*/
+cmake-build-*/
+out/
 
-# CMake generated files
+# =========================
+# CMake
+# =========================
 CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
@@ -52,18 +49,43 @@ Makefile
 install_manifest.txt
 compile_commands.json
 
-# Temporary files
-*.tmp
+# =========================
+# Debug / logs
+# =========================
+*.pdb
 *.log
+*.tmp
 *.bak
 *.swp
-
-# vcpkg
-vcpkg_installed/
-
-# debug information files
 *.dwo
 
-# test output & cache
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+*.code-workspace
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# vcpkg
+# =========================
+vcpkg_installed/
+
+# =========================
+# Tests / cache
+# =========================
 Testing/
 .cache/
+
+# =========================
+# Profiling / benchmarks
+# =========================
+perf.data
+*.trace
+*.prof
