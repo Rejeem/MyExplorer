@@ -1,4 +1,14 @@
+
 # MyExplorer — High-Performance Disk Analyzer (C++17)
+
+## Note on Tooling
+
+This project was developed with the assistance of AI tools, including a local setup using Cline with Gemma 4 (E4B), primarily for code organization and documentation.
+
+All architectural decisions, performance constraints, and benchmarking were defined and validated manually.
+
+AI was used as a productivity tool to improve clarity and speed of implementation, not as a replacement for design or engineering decisions.
+
 
 ## Overview
 
