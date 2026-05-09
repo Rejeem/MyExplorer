@@ -1,78 +1,185 @@
 # MyExplorer — High-Performance Disk Analyzer (C++17)
 
-## 🚀 Professional Engineering Showcase
+## 🚀 Overview
 
-MyExplorer is a systems-level performance exploration project. It is designed to handle massive filesystems (10M+ files) by prioritizing **Memory Locality**, **Cache-Friendliness**, and **Parallel Execution**. 
+MyExplorer is a systems-level performance exploration project. It is designed to handle massive filesystems (10M+ files) by prioritizing **Memory Locality**, **Cache efficiency**, and **Parallel I/O execution**. 
 
-*This project demonstrates advanced software engineering, specifically focusing on how code behaves under extreme scale and I/O constraints, moving beyond "just working" to strictly optimized execution.*
+*This project focuses on systems-level performance engineering and large-scale filesystem traversal under real-world I/O constraints.*
 
 ---
 
 ## 🏗 System Architecture
 
-The engine follows a **Layered Architecture** and **Data-Oriented Design (DOD)** to eliminate heap fragmentation and maximize CPU cache hits. The core engine is strictly decoupled from the presentation layer (currently CLI, allowing seamless future GUI integration without modifying core logic).
+The engine is structured into distinct layers: filesystem traversal, task scheduling, memory management, and data aggregation. The core engine is decoupled from any presentation layer, enabling multiple frontends (CLI, future GUI, or API exposure) without modifications to core logic.
 
 ```mermaid
 
 
 graph TD
 
+%% =====================================================
 %% ENTRY
+%% =====================================================
+
 subgraph "Entry Layer"
-    A[main.cpp / BenchTool] --> B[FileScanner]
+    A[main.cpp / CLI Explorer] --> B[MyExplorer Engine]
 end
 
-%% EXECUTION
+%% =====================================================
+%% EXECUTION ENGINE
+%% =====================================================
+
 subgraph "Execution Engine"
     B --> C[Task Dispatcher]
     C --> D{ThreadPool}
     D --> E[Worker Threads]
     E --> F[Directory Scan Task]
+    F --> G[std::filesystem Traversal]
 end
 
+%% =====================================================
+%% LIVE STATUS
+%% =====================================================
+
+subgraph "Live Monitoring"
+    H[Atomic Node Counter]
+    I[CLI Spinner + Live Stats]
+end
+
+G --> H
+H --> I
+
+%% =====================================================
 %% BUILD PIPELINE
+%% =====================================================
+
 subgraph "Build Pipeline"
-    F --> G[Node Builder]
+    G --> J[Node Builder]
+    J --> K[Path Interning]
+    J --> L[Node Allocation]
+    J --> M[Tree Linking]
 end
 
+%% =====================================================
 %% MEMORY SYSTEM
+%% =====================================================
+
 subgraph "Memory System"
-    H[(MemoryPool)]
-    I[(StringPool)]
+
+    N[(MemoryPool)]
+    O[(StringPool)]
+
+    subgraph "Virtual Memory Arena"
+        P[MEM_RESERVE]
+        Q[MEM_COMMIT Chunks]
+    end
+
 end
 
-%% DATA STRUCTURE
+%% =====================================================
+%% TREE STRUCTURE
+%% =====================================================
+
 subgraph "LCRS Tree"
-    J[LCRS FileNode]
-    J --> K[First Child]
-    J --> L[Next Sibling]
+
+    R[LCRS FileNode]
+
+    R --> S[First Child]
+    R --> T[Next Sibling]
+
 end
 
-%% REAL FLOW
-G -->|Allocates memory via| H
-G -->|Interns strings via| I
-G -->|Constructs nodes| J
+%% =====================================================
+%% FILTERING & AGGREGATION
+%% =====================================================
 
+subgraph "Aggregation Layer"
+
+    U[Recursive Size Aggregation]
+    V[Small File Grouping]
+    W[Percentage Computation]
+
+end
+
+M --> U
+U --> V
+U --> W
+
+%% =====================================================
+%% NAVIGATION ENGINE
+%% =====================================================
+
+subgraph "Navigation Engine"
+
+    X[Directory Navigation]
+    Y[Offset-Based Sorting]
+    Z[Query Engine]
+
+end
+
+V --> Z
+W --> Z
+
+Z --> X
+Z --> Y
+
+%% =====================================================
+%% CLI INTERFACE
+%% =====================================================
+
+subgraph "CLI Interface"
+
+    AA[Formatted Tree View]
+
+    AB[cd name]
+    AC[cd ..]
+    AD[show]
+    AE[exit]
+
+end
+
+X --> AA
+Y --> AA
+
+AA --> AB
+AA --> AC
+AA --> AD
+AA --> AE
+
+%% =====================================================
+%% REAL FLOW
+%% =====================================================
+
+K -->|Interns strings via| O
+L -->|Allocates nodes via| N
+
+O --> P
+O --> Q
+
+M -->|Constructs nodes| R
+
+%% =====================================================
 %% STYLING
-style H fill:#7c7c80,stroke:#333,stroke-width:2px
-style I fill:#7c7c80,stroke:#333,stroke-width:2px
+%% =====================================================
+
+style N fill:#7c7c80,stroke:#333,stroke-width:2px
+style O fill:#7c7c80,stroke:#333,stroke-width:2px
 style D fill:#57578a,stroke:#333,stroke-width:2px
-style J fill:#86578a,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+style R fill:#86578a,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+style Z fill:#5c8a57,stroke:#333,stroke-width:2px
+style AA fill:#8a7a57,stroke:#333,stroke-width:2px
 ```
 ---
 
-## ⚙️ Engineering Principles & Design Patterns
+## ⚙️ Core Design Decisions
 
 The codebase is built with strict adherence to modern C++ best practices and established architectural principles:
 
-*   **SOLID (SRP & OCP):** High modularity. The `FileScanner` strictly handles OS-level traversal, the `NodeBuilder` assembles the data, and custom allocators manage memory. The engine is open to new interfaces (CLI/GUI) without requiring core logic modifications.
 *   **Design Patterns Applied:**
     *   **Object Pool / Custom Allocators:** Preallocated `MemoryPool` and `StringPool` drastically reduce heap allocations and OS-level lock contention during multithreaded execution.
-    *   **Flyweight:** String interning prevents duplicate path/extension strings, keeping memory footprint to a strict minimum (~100 bytes/node).
-    *   **Composite Pattern:** Implemented via a Left-Child Right-Sibling (LCRS) tree, allowing O(1) contiguous memory traversal instead of standard pointer-heavy trees.
-*   **Data-Oriented Design (DOD):** Favoring contiguous arrays and offsets over pointers to drastically reduce L1/L2 cache misses.
-*   **KISS & YAGNI:** The thread pool dynamically sizes to physical cores, but complex dynamic back-pressure was intentionally deferred to prioritize measuring raw I/O saturation first.
-
+    *   **Flyweight:** String interning prevents duplicate path/extension strings, keeping memory footprint to a strict minimum.
+    *   **Hierarchical Tree Representation:** Implemented using a Left-Child Right-Sibling (LCRS) structure to efficiently represent large filesystem hierarchies while minimizing pointer overhead.
+*   **Data-Oriented Design (DOD):** Favoring compact memory layouts, pooled allocations, and offset-based references to reduce cache misses and heap fragmentation.
 ---
 
 ## 📊 Performance Targets & Threading Strategy
@@ -80,6 +187,7 @@ The codebase is built with strict adherence to modern C++ best practices and est
 *   **O(N)** filesystem traversal using `std::filesystem`.
 *   **O(N log N)** optimized sorting for query aggregation.
 *   **Memory Target:** ~100 bytes per node (Scalable to 10M+ files).
+*   **Improving cache locality and reducing memory overhead compared to traditional pointer-heavy tree structures.
 
 ### The I/O Bound Reality
 The current implementation uses a thread pool mapped to the number of physical CPU cores. However, extensive benchmarking revealed the workload is **primarily I/O-bound**.
@@ -128,4 +236,5 @@ The project is currently in an **iterative optimization phase**. The current ver
 
 ## 🤖 Note on Tooling
 
-All architectural decisions, performance constraints, and benchmarking design were engineered and validated manually. AI tooling (local Gemma 4 / E4B via Cline) was utilized strictly as a productivity multiplier for boilerplate generation and documentation formatting, not as a replacement for system engineering decisions.
+All architectural and performance decisions were designed and validated manually.
+AI tooling (local Gemma 4 / E4B via Cline) was used strictly for code organization and documentation assistance.
