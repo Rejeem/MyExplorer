@@ -30,16 +30,25 @@ public:
     /**
      * @brief Atomically reserves space and copies the string into the pool buffer.
      * 
-     * This operation is thread-safe. It reserves the required memory at the current 
-     * offset, ensuring the string is correctly stored at a unique location within 
-     * the pool's managed memory.
+     * Thread-safe operation that reserves the required memory at the current offset,
+     * ensuring the string is stored at a unique location within the pool.
+     * Automatically manages physical memory commits in fixed blocks for optimal performance.
      * 
      * @param str The string content to be stored.
-     * @return uint32_t The starting offset (index) of the stored string within the pool buffer.
-     * @throws std::runtime_error if the pool memory is full.
+     * @return uint32_t The byte offset of the stored string within the pool buffer.
+     * @throws std::runtime_error if the pool capacity is exceeded.
      */
     uint32_t getOffset(const std::string& str);
     
+    /**
+    * @brief Retrieves a string from the pool given its offset.
+    * @param offset The byte offset where the string is stored in the pool buffer.
+    * @return const char* A pointer to the null-terminated string at the specified offset.
+    */
+    const char* get(uint32_t offset) const { 
+    return buffer_ptr_ + offset; 
+    }
+
     /**
      * @brief Resets the pool's current offset, making all allocated slots logically available.
      * 

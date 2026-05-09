@@ -49,14 +49,6 @@ struct FileNode {
     uint32_t siblingIndex; 
     
     /**
-     * @brief Depth level of this node in the file system hierarchy.
-     * 
-     * Used for calculating indentation or determining relative depth. The root 
-     * node typically has a depth of 0.
-     */
-    uint32_t depthLevel; 
-    
-    /**
      * @brief File type and attribute flags.
      * 
      * A bitmask containing various status indicators (e.g., bit 0=Directory, 
@@ -73,10 +65,12 @@ struct FileNode {
     uint32_t nameOffset;
 
     /**
-     * @brief Reserved padding field.
+     * @brief Size of the node in bytes.
      * 
-     * Used to ensure that the structure maintains a consistent size (32 bytes) 
-     * for memory alignment and future feature expansion.
+     * For regular files, this represents the actual file size on disk.
+     * For directories, this field is used during aggregation to store the cumulative size
+     * of all contained files and subdirectories.
+     * Using uint64_t ensures support for files and volumes exceeding 4 GB.
      */
-    uint32_t reserved2;
+    uint64_t fileSize;
 };

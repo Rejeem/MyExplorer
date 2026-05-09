@@ -5,18 +5,17 @@
 #include <algorithm>
 #include <stdexcept>
 #include <atomic>
-#include "FileNode.h" // Assuming FileNode.h exists and defines FileNode
+#include "FileNode.h"
 
 /**
  * @class MemoryPool
- * @brief Implements a Memory Pool (Arena/Linear Allocator) for fixed-size objects.
+ * @brief Singleton arena allocator for fixed-size FileNode objects.
  * 
- * This pool is highly optimized for allocating fixed-size structures like FileNode. 
- * By utilizing a contiguous std::vector<FileNode>, it guarantees that all objects 
- * are stored back-to-back in memory. This architecture successfully eliminates 
- * heap fragmentation, maximizes cache locality, and allows for O(1) allocation 
- * time, making it ideal for high-performance virtual file system scanning 
- * and deep data structure indexing.
+ * Implements a high-performance memory pool using a contiguous std::vector to guarantee
+ * optimal cache locality, zero heap fragmentation, and O(1) allocation time.
+ * Ideal for large-scale file system traversal with millions of nodes.
+ * 
+ * @note This class is a singleton; use GetInstance() to access the global pool.
  */
 class MemoryPool {
 public:
@@ -51,23 +50,43 @@ public:
     /**
      * @brief Resets the entire pool, making all slots available again.
      * 
-     * This efficiently resets the pool's logical state by resetting the index counter.
-     * It preserves the total allocated memory capacity, thus guaranteeing O(1) 
-     * allocation for subsequent scan cycles.
+     * Resets the internal allocation counter without deallocating the underlying memory.
+     * This preserves capacity for subsequent scan cycles while allowing reuse of slots.
      */
     void reset();
 
     /**
-     * @brief Gets the total number of currently active slots.
+     * @brief Gets the total number of currently allocated nodes.
      * @return size_t The current count of allocated nodes.
      */
     size_t count() const { return next_available_index_.load(); }
 
     /**
+     * @brief Retrieves a pointer to a node by its index (inline for performance).
+     * 
+     * @param index The node index within the pool.
+     * @return FileNode* Pointer to the node, or nullptr if index is out of range.
+     */
+    inline FileNode* get(size_t index) {
+    if (index >= next_available_index_.load(std::memory_order_relaxed)) {
+        return nullptr;
+    }
+    return &nodes_[index];
+    }
+    
+    /**
      * @brief Gets the maximum capacity of the pool.
-     * @return size_t The hard limit of the allocated memory.
+     * @return size_t The hard limit of allocated slots.
      */
     size_t getCapacity() const { return nodes_.capacity(); }
+
+    /**
+     * @brief Gets the current count of allocated nodes (alias for count()).
+     * @return uint32_t The number of nodes currently allocated.
+     */
+    uint32_t getAllocatedCount() const {
+    return next_available_index_.load(); 
+    }
 
 private:
     /**

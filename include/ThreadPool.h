@@ -14,11 +14,10 @@
 
 /**
  * @class ThreadPool
- * @brief High-performance Thread Pool designed for intensive I/O and file scanning.
+ * @brief Fixed-size thread pool for concurrent task execution and I/O operations.
  * 
- * This pool manages a fixed set of worker threads and a task queue. It includes
- * specialized tracking of active tasks to allow the main thread to monitor 
- * scan progress in real-time.
+ * Manages a fixed set of worker threads, a task queue, and active task tracking.
+ * Enables the main thread to monitor progress and implement back-pressure mechanisms.
  */
 class ThreadPool {
 public:
@@ -54,18 +53,18 @@ public:
         -> std::future<std::invoke_result_t<F, Args...>>;
 
     /**
-     * @brief Atomic access to the current workload count.
-     * @return Number of tasks currently running or queued.
+     * @brief Gets the count of tasks currently running or awaiting execution.
+     * 
+     * Provides real-time visibility into pool workload for monitoring and back-pressure decisions.
+     * @return unsigned int The number of active tasks (running + queued).
      */
     unsigned int getActiveTasks() const { return active_task_count.load(); }
 
     /**
-     * @brief thread-safe check of the queue size.
+     * @brief Thread-safe check of the number of pending tasks in the queue.
      * 
-     * Used by the FileScanner back-pressure mechanism to decide between 
-     * async and sync execution.
-     * 
-     * @return Current number of pending tasks in the queue.
+     * Used by FileScanner to decide between async and sync execution modes.
+     * @return size_t The number of tasks currently queued (not yet executing).
      */
     size_t getQueueSize() const {
         std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(queue_mutex));

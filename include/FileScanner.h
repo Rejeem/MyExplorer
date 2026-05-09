@@ -47,7 +47,7 @@ public:
      * Resets internal state and enqueues the initial directory scanning task 
      * into the ThreadPool. This initiates the recursive traversal from the root path.
      * 
-     * @param rootPath The absolute starting filesystem path for the discovery process.
+     * @param rootPath The starting filesystem path for the discovery process (absolute or relative).
      */
     void scan(const std::string& rootPath);
 
@@ -60,26 +60,23 @@ public:
      */
     uint32_t getErrorCount() const { return error_count_.load(); }
     
+    /**
+     * @brief Internal recursive function for directory traversal and node creation.
+     * 
+     * Performs directory iteration, manages LCRS tree structure (first-child/next-sibling pointers),
+     * creates new FileNode instances, and enqueues sub-directory scanning tasks to the ThreadPool.
+     * Includes back-pressure handling to switch to synchronous scanning if the task queue is saturated.
+     * 
+     * @param path The filesystem path of the directory to process (absolute or relative).
+     * @param parentId The unique node ID of the parent directory.
+     * @param parentNode Pointer to the parent FileNode for establishing LCRS parent-child links.
+     */
+    void scanDirectory(const std::string& path, uint32_t parentId, FileNode* parentNode);
+
 private:
     ThreadPool& thread_pool_;   ///< Reference to the thread pool for asynchronous task execution.
     MemoryPool& node_pool_;     ///< Reference to the memory pool for persistent FileNode allocation.
     
-    /**
-     * @brief Internal recursive function for directory traversal.
-     * 
-     * This core function performs directory iteration, manages LCRS linking 
-     * (first-child/next-sibling pointers), creates new FileNode instances, and 
-     * submits new sub-directory scanning tasks to the ThreadPool. 
-     * It includes a back-pressure mechanism to fall back to synchronous scanning 
-     * if the asynchronous task queue is saturated.
-     * 
-     * @param path The absolute path of the directory currently being processed.
-     * @param parentId The unique node ID of the parent directory.
-     * @param parentNode Pointer to the parent FileNode used for establishing the 
-     *                   first-child link (LCRS structure).
-     */
-    void scanDirectory(const std::string& path, uint32_t parentId, FileNode* parentNode);
-
     /**
      * @brief Atomic counter tracking the total number of I/O errors encountered.
      * 

@@ -19,18 +19,27 @@ void run_test(const std::string& name, const std::string& path, unsigned int thr
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
     
-    std::cout << "| " << std::setw(10) << threads << " threads | " 
-              << std::setw(12) << nodePool.count() << " nodes | "
-              << std::setw(10) << diff.count() << "s |" << std::endl;
+    std::cout << "| " << std::setw(15) << name 
+          << " | " << std::setw(10) << threads << " threads | " 
+          << std::setw(12) << nodePool.count() << " nodes | "
+          << std::setw(10) << diff.count() << "s |" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
-    std::string testPath = (argc > 1) ? argv[1] : ".";
-    std::cout << "Starting Benchmarks on " << testPath << "\n" << std::endl;
-    if (argc <= 1) {
-        std::cout << "No benchmark path provided, using current directory.\n" << std::endl;
+    std::string testPath;
+
+    // Check if path was passed as a command-line argument
+    if (argc > 1) {
+        testPath = argv[1];
+    } else {
+        // Interactive mode: Ask the user for the path
+        std::cout << "Please enter the directory path to benchmark (or '.' for current): ";
+        std::getline(std::cin, testPath);
+
+        if (testPath.empty()) {
+            testPath = ".";
+        }
     }
-    std::cout << "----------------------------------------------------------" << std::endl;
     
     run_test("Single", testPath, 1);
     run_test("Dual", testPath, 2);

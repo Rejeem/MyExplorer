@@ -64,65 +64,60 @@ void FileScanner::scan(const std::string& rootPath) {
  */
 void FileScanner::scanDirectory(const std::string& path, uint32_t parentId, FileNode* parentNode) {
     FileNode* previousSibling = nullptr;
-    uint32_t current_node_index = 0;
+    uint32_t childCount = 0;
 
     try {
         fs::directory_options options = fs::directory_options::skip_permission_denied;
         
         for (const auto& entry : fs::directory_iterator(path, options)) {
-            // 1. Allocate node from the pool
+            // 1. Allocation
             FileNode* node = node_pool_.allocate(); 
             uint32_t nodeIndex = node->nodeId; 
-
-            // 2. Configure core properties
+            
+            // 2. Basic configuration
             node->parentId = parentId;
             node->nameOffset = StringPool::GetInstance().getOffset(entry.path().filename().string());
-            node->siblingIndex = 0;   // Will be updated by the next sibling
-            node->firstChildIndex = 0; // Will be updated if a child is found
+            node->siblingIndex = 0;
+            node->firstChildIndex = 0;
+            node->fileSize = 0; // Default to 0
 
-            // 3. LCRS TREE LOGIC (Forward Chaining)
-            if (current_node_index == 0) {
-                // If it's the first child, update the parent's link
+            // 3. LCRS logic (parent/sibling links)
+            if (childCount == 0) {
                 if (parentNode) {
                     parentNode->firstChildIndex = nodeIndex;
                 }
             } else if (previousSibling) {
-                // Otherwise, the previous sibling points to the current one
                 previousSibling->siblingIndex = nodeIndex;
             }
-            previousSibling = node; // Current becomes previous for the next iteration
+            previousSibling = node;
 
-            // 4. Directory Handling and Back-pressure
+            // 4. Directory / file distinction
             if (entry.is_directory()) {
-                node->fileFlags = 1; // Mark as directory
+                node->fileFlags = 1; // Directory flag
                 std::string subPath = entry.path().string();
 
-                // Check queue size for flow control
+                // ThreadPool pressure management (back-pressure)
                 if (thread_pool_.getQueueSize() > 10000) {
-                    // Back-pressure: process synchronously to avoid OOM
                     this->scanDirectory(subPath, nodeIndex, node);
                 } else {
-                    // Normal: enqueue task asynchronously
                     thread_pool_.enqueue([this, subPath, nodeIndex, node] {
                         this->scanDirectory(subPath, nodeIndex, node);
                     });
                 }
             } 
-            // 5. File Handling
             else if (entry.is_regular_file()) {
-                uint64_t size = entry.file_size();
-                node->fileFlags = 2; // Mark as file
-                node->reserved2 = static_cast<uint32_t>(size & 0xFFFFFFFF);
-                
-                if (size >= 4294967296ULL) { // Flag for files > 4GB
-                    node->fileFlags |= 4; 
+                node->fileFlags = 2; // File flag
+                // Directly store the actual file size
+                try {
+                    node->fileSize = entry.file_size();
+                } catch (...) {
+                    node->fileSize = 0; // Safety in case the file disappears during scan
                 }
             }
             
-            current_node_index++;
+            childCount++;
         }
     } catch (...) {
-        // Atomic increment for thread-safe error tracking
         error_count_++;
     }
 }
