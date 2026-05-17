@@ -1,10 +1,50 @@
 # MyExplorer — High-Performance Disk Analyzer (C++17)
 
+---
+## TL;DR
+
+MyExplorer is a high-performance filesystem analyzer written in C++17 designed to scan and process large directories (10M+ files target).
+
+It uses:
+- A custom memory pool (VirtualAlloc-based) to reduce allocation overhead
+- A string interning system (Flyweight) to minimize memory usage
+- A multithreaded scan engine (thread pool) for parallel filesystem traversal
+- A compact LCRS tree structure for efficient hierarchy representation
+
+The system is optimized for I/O-bound workloads and demonstrates scalable performance up to SSD throughput limits, with up to ~3.5x speedup on multi-core systems in benchmarks.
+
+The project focuses on real-world systems constraints rather than synthetic benchmarks.
+
+Skills covered: C++17, multithreading, memory management, systems programming, performance optimization, Windows internals (VirtualAlloc)
+
+## Why this matters
+
+Filesystem tools are often slow, memory-heavy, and not designed for large-scale traversal workloads.
+
+MyExplorer explores how far a C++ system can be pushed using:
+- custom memory management
+- cache-friendly data structures
+- parallel execution strategies
+- and realistic I/O-bound performance constraints
+
+This project demonstrates practical systems programming skills applicable to:
+- backend infrastructure tools
+- performance-critical applications
+- system utilities
+- engine development
+
+---
 ## 🚀 Overview
 
-MyExplorer is a systems-level performance exploration project. It is designed to handle massive filesystems (10M+ files) by prioritizing **Memory Locality**, **Cache efficiency**, and **Parallel I/O execution**. 
+The system follows a modular architecture separating:
+- parallel filesystem traversal
+- memory management and pooling
+- hierarchical data construction
+- query and aggregation logic
 
-*This project focuses on systems-level performance engineering and large-scale filesystem traversal under real-world I/O constraints.*
+The goal is to evaluate how far a custom C++ engine can be pushed in terms of throughput, memory efficiency, and concurrency under SSD-bound workloads.
+
+This project was built as a performance exploration tool rather than a production filesystem implementation.
 
 ---
 
@@ -16,158 +56,36 @@ The engine is structured into distinct layers: filesystem traversal, task schedu
 
 
 graph TD
-
-%% =====================================================
-%% ENTRY
-%% =====================================================
-
-subgraph "Entry Layer"
-    A[main.cpp / CLI Explorer] --> B[MyExplorer Engine]
-end
-
-%% =====================================================
-%% EXECUTION ENGINE
-%% =====================================================
-
-subgraph "Execution Engine"
-    B --> C[Task Dispatcher]
-    C --> D{ThreadPool}
-    D --> E[Worker Threads]
-    E --> F[Directory Scan Task]
-    F --> G[std::filesystem Traversal]
-end
-
-%% =====================================================
-%% LIVE STATUS
-%% =====================================================
-
-subgraph "Live Monitoring"
-    H[Atomic Node Counter]
-    I[CLI Spinner + Live Stats]
-end
-
-G --> H
-H --> I
-
-%% =====================================================
-%% BUILD PIPELINE
-%% =====================================================
-
-subgraph "Build Pipeline"
-    G --> J[Node Builder]
-    J --> K[Path Interning]
-    J --> L[Node Allocation]
-    J --> M[Tree Linking]
-end
-
-%% =====================================================
-%% MEMORY SYSTEM
-%% =====================================================
-
-subgraph "Memory System"
-
-    N[(MemoryPool)]
-    O[(StringPool)]
-
-    subgraph "Virtual Memory Arena"
-        P[MEM_RESERVE]
-        Q[MEM_COMMIT Chunks]
+    %% Entry & Frontend
+    CLI[CLI Interface & Monitoring] -->|Dispatches Scan| TP{ThreadPool <br/> N Workers}
+    
+    %% Execution Layer
+    subgraph ExecutionEngine ["Parallel Scan Engine"]
+        TP -->|Concurrent Tasks| FS[std::filesystem Traversal]
+        FS -.->|Real-time Telemetry| AC((Atomic Counter))
+        AC -.->|Live UI Spinners| CLI
     end
 
-end
+    %% Storage Layer
+    subgraph MemorySystem ["Minimized heap contention via pooled allocation"]
+        FS -->|1. Path Interning| SP[(StringPool <br/> Flyweight Pattern)]
+        FS -->|2. Lock-Free Allocate| MP[(MemoryPool <br/> VirtualAlloc Arena)]
+    end
 
-%% =====================================================
-%% TREE STRUCTURE
-%% =====================================================
+    %% Data Layout & Navigation
+    subgraph DataLayer ["Data Layout & Query Engine"]
+        MP -->|Backs| LCRS[Compact LCRS Tree <br/> 32-byte FileNodes]
+        LCRS -->|Recursive Aggregation| QE[Query & Sorting Engine]
+    end
 
-subgraph "LCRS Tree"
+    QE -->|Formatted Presentation| CLI
 
-    R[LCRS FileNode]
-
-    R --> S[First Child]
-    R --> T[Next Sibling]
-
-end
-
-%% =====================================================
-%% FILTERING & AGGREGATION
-%% =====================================================
-
-subgraph "Aggregation Layer"
-
-    U[Recursive Size Aggregation]
-    V[Small File Grouping]
-    W[Percentage Computation]
-
-end
-
-M --> U
-U --> V
-U --> W
-
-%% =====================================================
-%% NAVIGATION ENGINE
-%% =====================================================
-
-subgraph "Navigation Engine"
-
-    X[Directory Navigation]
-    Y[Offset-Based Sorting]
-    Z[Query Engine]
-
-end
-
-V --> Z
-W --> Z
-
-Z --> X
-Z --> Y
-
-%% =====================================================
-%% CLI INTERFACE
-%% =====================================================
-
-subgraph "CLI Interface"
-
-    AA[Formatted Tree View]
-
-    AB[cd name]
-    AC[cd ..]
-    AD[show]
-    AE[exit]
-
-end
-
-X --> AA
-Y --> AA
-
-AA --> AB
-AA --> AC
-AA --> AD
-AA --> AE
-
-%% =====================================================
-%% REAL FLOW
-%% =====================================================
-
-K -->|Interns strings via| O
-L -->|Allocates nodes via| N
-
-O --> P
-O --> Q
-
-M -->|Constructs nodes| R
-
-%% =====================================================
-%% STYLING
-%% =====================================================
-
-style N fill:#7c7c80,stroke:#333,stroke-width:2px
-style O fill:#7c7c80,stroke:#333,stroke-width:2px
-style D fill:#57578a,stroke:#333,stroke-width:2px
-style R fill:#86578a,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-style Z fill:#5c8a57,stroke:#333,stroke-width:2px
-style AA fill:#8a7a57,stroke:#333,stroke-width:2px
+    %% Design Styles
+    style TP fill:#1e293b,stroke:#3b82f6,stroke-width:2px
+    style MP fill:#1e1b4b,stroke:#6366f1,stroke-width:2px
+    style SP fill:#1e1b4b,stroke:#6366f1,stroke-width:2px
+    style LCRS fill:#311042,stroke:#a855f7,stroke-width:2px
+    style QE fill:#14532d,stroke:#22c55e,stroke-width:2px
 ```
 ---
 
@@ -186,8 +104,8 @@ The codebase is built with strict adherence to modern C++ best practices and est
 
 *   **O(N)** filesystem traversal using `std::filesystem`.
 *   **O(N log N)** optimized sorting for query aggregation.
-*   **Memory Target:** ~100 bytes per node (Scalable to 10M+ files).
-*   **Improving cache locality and reducing memory overhead compared to traditional pointer-heavy tree structures.
+*   **Memory Target:** 32 bytes per node.
+*   **Cache Locality:** Designed around compact memory layouts and offset-based references to eliminate the overhead of traditional pointer-heavy tree structures.
 
 ### The I/O Bound Reality
 The current implementation uses a thread pool mapped to the number of physical CPU cores. However, extensive benchmarking revealed the workload is **primarily I/O-bound**.
@@ -198,29 +116,42 @@ The current implementation uses a thread pool mapped to the number of physical C
 
 ---
 
-## ⏱️ Benchmarks
+## ⏱️ Performance Profiling & Benchmarks
 
-**Environment Notes:**
-*   Windows filesystem (NTFS)
-*   Solid State Drive (SSD)
-*   Executed with administrator privileges (to bypass permission-check overhead and OS bias)
+### Environment Notes
+* **Operating System:** Windows 11 (NTFS File System)
+* **Storage:** Solid State Drive (SSD)
+* **Execution:** Ran with Administrator privileges to bypass OS permission overhead and caching bias.
 
-### Benchmark 1: `C:/Windows`
-| Threads | Nodes   | Time (s) | Speedup |
-| ------- | ------- | -------- | ------- |
-| 1       | 347,827 | 19.50    | 1.0x    |
-| 2       | 347,827 | 12.64    | 1.54x   |
-| 4       | 347,827 | 7.81     | 2.50x   |
-| 12      | 347,827 | 5.73     | 3.40x   |
+---
 
-### Benchmark 2: `C:/` (Full Drive)
-| Threads | Nodes     | Time (s) | Speedup |
-| ------- | --------- | -------- | ------- |
-| 1       | 1,143,006 | 60.48    | 1.0x    |
-| 2       | 1,143,007 | 38.36    | 1.58x   |
-| 4       | 1,143,008 | 22.74    | 2.66x   |
-| 12      | 1,143,008 | 14.95    | 4.04x   |
+### 📊 Benchmark : `C:\Windows` (Directory Scan on an average of 10 runs)
+* **Total Dataset Size:** 348,216 Files & Folders
+* **Memory Arena Footprint (Virtual Space Reserved):** 305.18 MB
 
+| Metric | 1 Thread (Baseline) | 2 Threads | 4 Threads | 12 Threads (Max Hardware) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Scan Time** | 19.66 s | 12.44 s | 7.61 s | **5.67 s** |
+| **Speedup Factor** | 1.00x | 1.58x | 2.58x | **3.47x** |
+| **Nodes / sec** | 17,712 n/s | 27,999 n/s | 45,729 n/s | **61,445 n/s** |
+| **Peak Memory (RAM)**| 31.34 MB | 34.12 MB | 35.91 MB | **37.39 MB** |
+| **Committed RAM** | 29.30 MB | 29.80 MB | 30.83 MB | **33.03 MB** |
+| **Allocation Throughput**| 0.54 MB/s | 0.85 MB/s | 1.40 MB/s | **1.88 MB/s** |
+| **I/O Scaling Efficiency**| 100.00% | 79.04% | 64.55% | **28.91%** |
+
+---
+
+### 🧠 Performance & Architecture Insights
+
+#### 1. High-Performance Memory Arena (`VirtualAlloc`)
+The core optimization of the `MemoryPool` using the Windows native API (`VirtualAlloc` paired with a dynamic 4MB `MEM_COMMIT` paging strategy) yields exceptional results. During a massive scan of `C:\Windows`, the physical memory footprint (**Committed Memory**) is strictly contained to just **33.03 MB**, down from over 370 MB using initial standard containers. The engine minimizes reallocations by using a reserved virtual memory arena (305.18 MB) and a custom allocation strategy, reducing fragmentation and avoiding vector reallocations.
+
+#### 2. Multi-Threading Scaling & I/O Saturation
+The **I/O Scaling Efficiency** tracking uncovers the exact behavior of the engine against the hardware limitations:
+* Scaling from 1 to 4 cores delivers a clean, predictable speedup (dropping execution time from 19.66s down to 7.61s).
+* At maximum configuration (12 hardware threads), the overall scan time drops to **5.67s**, sustaining an injection throughput of **61,445 nodes per second** into the logical tree.
+* At 12 threads, scaling efficiency stabilizes at 28.91%, suggesting a transition from CPU-bound execution toward I/O-bound saturation. This suggests that the bottleneck is no longer CPU-bound or allocator-bound (thanks to lock-free atomics), but instead constrained by the host SSD’s random read I/O throughput over NTFS. The results indicate that the engine is likely approaching SSD I/O saturation under test conditions.
+  
 ---
 
 ## 🛠️ Current Status & Roadmap
@@ -234,7 +165,22 @@ The project is currently in an **iterative optimization phase**. The current ver
 
 ---
 
+## ⚠️ Limitations
+
+This project is optimized for read-heavy filesystem traversal workloads and does not aim to be a general-purpose filesystem engine.
+
+Key limitations include:
+- Performance is heavily dependent on underlying SSD I/O characteristics
+- Write operations and mutation-heavy workloads are not optimized
+- Thread scaling is constrained by OS-level I/O scheduling rather than CPU availability
+- Memory pool strategy trades flexibility for performance, limiting dynamic allocation patterns
+- Benchmark results may vary depending on filesystem state and cache conditions
+
+These limitations reflect intentional design trade-offs for performance and are not considered implementation constraints.
+
+---
+
 ## 🤖 Note on Tooling
 
 All architectural and performance decisions were designed and validated manually.
-AI tooling (local Gemma 4 / E4B via Cline) was used strictly for code organization and documentation assistance.
+AI tooling (local Gemma 4 / E4B via Cline) was used strictly for reviewing and documentation assistance.
