@@ -19,7 +19,7 @@ void test_logic() {
 
     FileNode* root = pool.allocate(); 
     root->nodeId = 0; 
-    root->parentId = 0xFFFFFFFF; // Pas de parent
+    root->parentId = 0xFFFFFFFF;
 
     FileNode* fileA = pool.allocate();
     fileA->nodeId = 1;

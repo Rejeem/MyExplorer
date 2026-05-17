@@ -19,8 +19,8 @@ int main() {
 
     // 2. Test Data
     fs::path currentFile = __FILE__;
-    std::string testPath = currentFile.parent_path().parent_path().string();
-
+    std::string testPath = "C:/Windows/System32/kernel32.dll";
+    assert(!testPath.empty());
     // 3. Store string and get offset
     uint32_t offset = sp.getOffset(testPath);
     std::cout << "[StringPool] Stored path at offset: " << offset << std::endl;

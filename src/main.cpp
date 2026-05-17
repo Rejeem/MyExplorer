@@ -75,7 +75,7 @@ int main() {
         std::cout << "\n";
 
         while (pool.getActiveTasks() > 0) {
-            uint32_t count = nodePool.getAllocatedCount();
+            uint32_t count = nodePool.count();
             std::cout << "\r[Status] " << spinner[spinnerIdx] << " Nodes found: " << count << " (scanning...)" << std::flush;
             spinnerIdx = (spinnerIdx + 1) % 4;
             std::this_thread::sleep_for(std::chrono::milliseconds(150));
